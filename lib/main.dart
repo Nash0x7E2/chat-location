@@ -82,6 +82,7 @@ class ChannelPage extends StatefulWidget {
 
 class _ChannelPageState extends State<ChannelPage> {
   Location? location;
+  GlobalKey<MessageInputState> _messageInputKey = GlobalKey();
 
   Future<bool> setupLocation() async {
     if (location == null) {
@@ -117,30 +118,23 @@ class _ChannelPageState extends State<ChannelPage> {
     }
 
     final locationData = await location!.getLocation();
-    await StreamChannel.of(context).channel.sendMessage(
-          Message(
-            text: 'This is a location message',
-            attachments: [
-              Attachment(
-                type: 'location',
-                uploadState: UploadState.success(),
-                extraData: {
-                  'lat': locationData.latitude,
-                  'long': locationData.longitude,
-                },
-              )
-            ],
-          ),
-        );
-
-    print('Location Sent!');
+    _messageInputKey.currentState?.addAttachment(
+      Attachment(
+        type: 'location',
+        uploadState: UploadState.success(),
+        extraData: {
+          'lat': locationData.latitude,
+          'long': locationData.longitude,
+        },
+      ),
+    );
     return;
   }
 
   Widget _buildLocationMessage(
     BuildContext context,
     Message details,
-    List<Attachment> attachments,
+    List<Attachment> _,
   ) {
     return MapImageThumbnail(
       lat: details.attachments.first.extraData['lat'],
@@ -160,6 +154,13 @@ class _ChannelPageState extends State<ChannelPage> {
             ),
           ),
           MessageInput(
+            key: _messageInputKey,
+            attachmentThumbnailBuilders: {
+              'location': (context, attachment) => MapImageThumbnail(
+                    lat: attachment.extraData['lat'],
+                    long: attachment.extraData['long'],
+                  )
+            },
             actions: [
               IconButton(
                 icon: Icon(Icons.location_history),
@@ -191,7 +192,7 @@ class MapImageThumbnail extends StatelessWidget {
         queryParameters: {
           'center': '$lat,$long',
           'zoom': '18',
-          'size': '600x500',
+          'size': '700x500',
           'maptype': 'roadmap',
           'key': 'MAP_KEY',
           'markers': 'color:red|$lat,$long'
