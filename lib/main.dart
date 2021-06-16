@@ -136,9 +136,28 @@ class _ChannelPageState extends State<ChannelPage> {
     Message details,
     List<Attachment> _,
   ) {
-    return MapImageThumbnail(
-      lat: details.attachments.first.extraData['lat'],
-      long: details.attachments.first.extraData['long'],
+    final username = details.user!.name;
+    final lat = details.attachments.first.extraData['lat'] as double;
+    final long = details.attachments.first.extraData['long'] as double;
+    return InkWell(
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => GoogleMapsView(
+            message: details,
+            channelName: username,
+            client: StreamChat.of(context).client,
+          ),
+        ),
+      ),
+      child: wrapAttachmentWidget(
+        context,
+        MapImageThumbnail(
+          lat: lat,
+          long: long,
+        ),
+        RoundedRectangleBorder(),
+        true,
+      ),
     );
   }
 
@@ -206,6 +225,83 @@ class MapImageThumbnail extends StatelessWidget {
       height: 300.0,
       width: 600.0,
       fit: BoxFit.fill,
+    );
+  }
+}
+
+class GoogleMapsView extends StatefulWidget {
+  const GoogleMapsView({
+    Key? key,
+    required this.channelName,
+    required this.message,
+    required this.client,
+  }) : super(key: key);
+  final String channelName;
+  final Message message;
+  final StreamChatClient client;
+
+  @override
+  _GoogleMapsViewState createState() => _GoogleMapsViewState();
+}
+
+class _GoogleMapsViewState extends State<GoogleMapsView> {
+  late StreamSubscription _messageSubscription;
+  double lat = 0.0;
+  double long = 0.0;
+
+  Attachment get _messageAttachment => widget.message.attachments.first;
+
+  @override
+  void initState() {
+    super.initState();
+    lat = _messageAttachment.extraData['lat'] as double;
+    long = _messageAttachment.extraData['long'] as double;
+    _messageSubscription =
+        widget.client.on(EventType.messageUpdated).listen(_updateHandler);
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    _messageSubscription.cancel();
+  }
+
+  void _updateHandler(Event event) {
+    if (event.message?.id == widget.message.id) {
+      double _newLat = _messageAttachment.extraData['lat'] as double;
+      double _newLong = _messageAttachment.extraData['long'] as double;
+
+      if (_newLong != long) {
+        setState(() {
+          long = _newLong;
+        });
+      }
+
+      if (_newLat != lat) {
+        setState(() {
+          lat = _newLat;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final _pos = LatLng(lat, long);
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.channelName, style: TextStyle(color: Colors.black)),
+        backgroundColor: Colors.white,
+      ),
+      body: GoogleMap(
+        initialCameraPosition: CameraPosition(target: _pos, zoom: 16),
+        markers: {
+          Marker(
+            markerId: MarkerId('user-location-marker'),
+            position: _pos,
+          ),
+        },
+      ),
     );
   }
 }
