@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:location/location.dart';
 import 'package:stream_chat_flutter/stream_chat_flutter.dart';
 
@@ -55,11 +58,7 @@ class ChannelListPage extends StatelessWidget {
       ),
       body: ChannelsBloc(
         child: ChannelListView(
-          filter: {
-            'members': {
-              '\$in': [StreamChat.of(context).user.id],
-            }
-          },
+          filter: Filter.in_('members', [StreamChat.of(context).user!.id]),
           sort: [SortOption('last_message_at')],
           pagination: PaginationParams(
             limit: 30,
@@ -176,8 +175,8 @@ class _ChannelPageState extends State<ChannelPage> {
             key: _messageInputKey,
             attachmentThumbnailBuilders: {
               'location': (context, attachment) => MapImageThumbnail(
-                    lat: attachment.extraData['lat'],
-                    long: attachment.extraData['long'],
+                    lat: attachment.extraData['lat'] as double,
+                    long: attachment.extraData['long'] as double,
                   )
             },
             actions: [
