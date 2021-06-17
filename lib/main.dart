@@ -181,15 +181,19 @@ class _ChannelPageState extends State<ChannelPage> {
     final lat = details.attachments.first.extraData['lat'] as double;
     final long = details.attachments.first.extraData['long'] as double;
     return InkWell(
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => GoogleMapsView(
-            message: details,
-            channelName: username,
-            client: StreamChat.of(context).client,
+      onTap: () {
+        startLocationTracking(details.id, details.attachments.first.id);
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => GoogleMapsView(
+              onBack: cancelLocationSubscription,
+              message: details,
+              channelName: username,
+              client: StreamChat.of(context).client,
+            ),
           ),
-        ),
-      ),
+        );
+      },
       child: wrapAttachmentWidget(
         context,
         MapImageThumbnail(
@@ -276,10 +280,12 @@ class GoogleMapsView extends StatefulWidget {
     required this.channelName,
     required this.message,
     required this.client,
+    required this.onBack,
   }) : super(key: key);
   final String channelName;
   final Message message;
   final StreamChatClient client;
+  final VoidCallback onBack;
 
   @override
   _GoogleMapsViewState createState() => _GoogleMapsViewState();
@@ -287,6 +293,7 @@ class GoogleMapsView extends StatefulWidget {
 
 class _GoogleMapsViewState extends State<GoogleMapsView> {
   late StreamSubscription _messageSubscription;
+  GoogleMapController? mapController;
   double lat = 0.0;
   double long = 0.0;
 
@@ -311,37 +318,42 @@ class _GoogleMapsViewState extends State<GoogleMapsView> {
     if (event.message?.id == widget.message.id) {
       double _newLat = _messageAttachment.extraData['lat'] as double;
       double _newLong = _messageAttachment.extraData['long'] as double;
-
-      if (_newLong != long) {
-        setState(() {
-          long = _newLong;
-        });
-      }
-
-      if (_newLat != lat) {
-        setState(() {
-          lat = _newLat;
-        });
-      }
+      print("message location " + _messageAttachment.extraData.toString());
+      mapController?.moveCamera(
+        CameraUpdate.newLatLng(
+          LatLng(
+            _newLat,
+            _newLong,
+          ),
+        ),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final _pos = LatLng(lat, long);
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.channelName, style: TextStyle(color: Colors.black)),
-        backgroundColor: Colors.white,
-      ),
-      body: GoogleMap(
-        initialCameraPosition: CameraPosition(target: _pos, zoom: 16),
-        markers: {
-          Marker(
-            markerId: MarkerId('user-location-marker'),
-            position: _pos,
-          ),
-        },
+    var _pos = LatLng(lat, long);
+    return WillPopScope(
+      onWillPop: () async {
+        widget.onBack();
+        return true;
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title:
+              Text(widget.channelName, style: TextStyle(color: Colors.black)),
+          backgroundColor: Colors.white,
+        ),
+        body: GoogleMap(
+          initialCameraPosition: CameraPosition(target: _pos, zoom: 16),
+          onMapCreated: (controller) => mapController = controller,
+          markers: {
+            Marker(
+              markerId: MarkerId('user-location-marker'),
+              position: _pos,
+            ),
+          },
+        ),
       ),
     );
   }
