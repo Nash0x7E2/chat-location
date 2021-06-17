@@ -81,6 +81,7 @@ class ChannelPage extends StatefulWidget {
 
 class _ChannelPageState extends State<ChannelPage> {
   Location? location;
+  StreamSubscription<LocationData>? locationSubscription;
   GlobalKey<MessageInputState> _messageInputKey = GlobalKey();
 
   Future<bool> setupLocation() async {
@@ -129,6 +130,47 @@ class _ChannelPageState extends State<ChannelPage> {
     );
     return;
   }
+
+  Future<void> startLocationTracking(
+    String messageId,
+    String attachmentId,
+  ) async {
+    final canSendLocation = await setupLocation();
+    if (canSendLocation != true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              "We can't access your location at this time. Did you allow location access?"),
+        ),
+      );
+    }
+
+    locationSubscription = location!.onLocationChanged.listen(
+      (LocationData event) {
+        print("location " + event.toString());
+        StreamChat.of(context).client.updateMessage(
+              Message(
+                id: messageId,
+                attachments: [
+                  Attachment(
+                    id: attachmentId,
+                    type: 'location',
+                    uploadState: UploadState.success(),
+                    extraData: {
+                      'lat': event.latitude,
+                      'long': event.longitude,
+                    },
+                  ),
+                ],
+              ),
+            );
+      },
+    );
+
+    return;
+  }
+
+  void cancelLocationSubscription() => locationSubscription?.cancel();
 
   Widget _buildLocationMessage(
     BuildContext context,
