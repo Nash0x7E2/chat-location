@@ -83,6 +83,13 @@ class _ChannelPageState extends State<ChannelPage> {
   Location? location;
   StreamSubscription<LocationData>? locationSubscription;
   GlobalKey<MessageInputState> _messageInputKey = GlobalKey();
+  late Channel _channel;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _channel = StreamChannel.of(context).channel;
+  }
 
   Future<bool> setupLocation() async {
     if (location == null) {
@@ -189,7 +196,7 @@ class _ChannelPageState extends State<ChannelPage> {
               onBack: cancelLocationSubscription,
               message: details,
               channelName: username,
-              client: StreamChat.of(context).client,
+              channel: _channel,
             ),
           ),
         );
