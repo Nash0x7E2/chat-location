@@ -63,7 +63,7 @@ class ChannelListPage extends StatelessWidget {
           pagination: PaginationParams(
             limit: 30,
           ),
-          channelWidget: ChannelPage(),
+          channelWidget: Builder(builder: (context) => ChannelPage()),
         ),
       ),
     );
