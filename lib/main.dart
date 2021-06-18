@@ -278,12 +278,12 @@ class GoogleMapsView extends StatefulWidget {
     Key? key,
     required this.channelName,
     required this.message,
-    required this.client,
+    required this.channel,
     required this.onBack,
   }) : super(key: key);
   final String channelName;
   final Message message;
-  final StreamChatClient client;
+  final Channel channel;
   final VoidCallback onBack;
 
   @override
@@ -292,9 +292,10 @@ class GoogleMapsView extends StatefulWidget {
 
 class _GoogleMapsViewState extends State<GoogleMapsView> {
   late StreamSubscription _messageSubscription;
+  late double lat;
+  late double long;
+
   GoogleMapController? mapController;
-  double lat = 0.0;
-  double long = 0.0;
 
   Attachment get _messageAttachment => widget.message.attachments.first;
 
@@ -342,19 +343,44 @@ class _GoogleMapsViewState extends State<GoogleMapsView> {
       },
       child: Scaffold(
         appBar: AppBar(
-          title:
-              Text(widget.channelName, style: TextStyle(color: Colors.black)),
+          title: Text(
+            widget.channelName,
+            style: TextStyle(
+              color: Colors.black,
+            ),
+          ),
           backgroundColor: Colors.white,
         ),
-        body: GoogleMap(
-          initialCameraPosition: CameraPosition(target: _pos, zoom: 16),
-          onMapCreated: (controller) => mapController = controller,
-          markers: {
-            Marker(
-              markerId: MarkerId('user-location-marker'),
-              position: _pos,
+        body: AnimatedCrossFade(
+          duration: kThemeAnimationDuration,
+          crossFadeState: mapController != null
+              ? CrossFadeState.showFirst
+              : CrossFadeState.showSecond,
+          firstChild: ConstrainedBox(
+            constraints: BoxConstraints.loose(MediaQuery.of(context).size),
+            child: GoogleMap(
+              initialCameraPosition: CameraPosition(
+                target: _pos,
+                zoom: 18,
+              ),
+              onMapCreated: (_controller) =>
+                  setState(() => mapController = _controller),
+              markers: {
+                Marker(
+                  markerId: MarkerId("user-location-marker-id"),
+                  position: _pos,
+                )
+              },
             ),
-          },
+          ),
+          secondChild: Container(
+            child: Center(
+              child: Icon(
+                Icons.location_history,
+                color: Colors.red.withOpacity(0.76),
+              ),
+            ),
+          ),
         ),
       ),
     );
