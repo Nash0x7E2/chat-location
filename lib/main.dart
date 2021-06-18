@@ -154,23 +154,15 @@ class _ChannelPageState extends State<ChannelPage> {
 
     locationSubscription = location!.onLocationChanged.listen(
       (LocationData event) {
-        print("location " + event.toString());
-        StreamChat.of(context).client.updateMessage(
-              Message(
-                id: messageId,
-                attachments: [
-                  Attachment(
-                    id: attachmentId,
-                    type: 'location',
-                    uploadState: UploadState.success(),
-                    extraData: {
-                      'lat': event.latitude,
-                      'long': event.longitude,
-                    },
-                  ),
-                ],
-              ),
-            );
+        _channel.sendEvent(
+          Event(
+            type: 'location_update',
+            extraData: {
+              'lat': event.latitude,
+              'long': event.longitude,
+            },
+          ),
+        );
       },
     );
 
@@ -312,7 +304,7 @@ class _GoogleMapsViewState extends State<GoogleMapsView> {
     lat = _messageAttachment.extraData['lat'] as double;
     long = _messageAttachment.extraData['long'] as double;
     _messageSubscription =
-        widget.client.on(EventType.messageUpdated).listen(_updateHandler);
+        widget.channel.on('location_update').listen(_updateHandler);
   }
 
   @override
@@ -322,19 +314,22 @@ class _GoogleMapsViewState extends State<GoogleMapsView> {
   }
 
   void _updateHandler(Event event) {
-    if (event.message?.id == widget.message.id) {
-      double _newLat = _messageAttachment.extraData['lat'] as double;
-      double _newLong = _messageAttachment.extraData['long'] as double;
-      print("message location " + _messageAttachment.extraData.toString());
-      mapController?.moveCamera(
-        CameraUpdate.newLatLng(
-          LatLng(
-            _newLat,
-            _newLong,
-          ),
+    double _newLat = event.extraData['lat'] as double;
+    double _newLong = event.extraData['long'] as double;
+
+    setState(() {
+      lat = _newLat;
+      long = _newLong;
+    });
+
+    mapController?.animateCamera(
+      CameraUpdate.newLatLng(
+        LatLng(
+          _newLat,
+          _newLong,
         ),
-      );
-    }
+      ),
+    );
   }
 
   @override
