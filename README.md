@@ -26,6 +26,8 @@ Before cloning and attempting to run this project, please make sure you have the
 
 > Note: This project was built and tested using the iOS simulator. If you are attempting to run this project on Android, please referece the [Google Maps](https://pub.dev/packages/google_maps_flutter) API documentation for platform specific instructions.
 
+<br/>
+
 Happy Hacking! 
 <br/>
 -- [Nash](https://twitter.com/Nash0x7E2)
